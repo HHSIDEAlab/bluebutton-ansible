@@ -1,0 +1,41 @@
+---
+
+- name: Add 'ppa:webupd8team/java' Repo
+  apt_repository: repo='ppa:webupd8team/java'
+
+- name: Accept 'oracle-java8-installer' License
+  # Reference: http://askubuntu.com/a/637514/41593
+  debconf: name='oracle-java8-installer' question='shared/accepted-oracle-license-v1-1' value='true' vtype='select'
+
+- name: Install Java 8 JRE and Other Prerequisites
+  apt: name={{ item }} update_cache=true cache_valid_time="{{ 60 * 15 }}"
+  with_items:
+    - oracle-java8-installer
+    - oracle-java8-set-default
+    - libpq-dev
+    - python-psycopg2
+
+- name: Create Database
+  postgresql_db:
+    login_host="{{ rds_postgres_bluebutton_address }}"
+    login_user="{{ postgres_bluebutton_master_username }}"
+    login_password="{{ postgres_bluebutton_master_password }}"
+    name=bluebutton_hapi
+    encoding='UNICODE'
+    lc_collate='C'
+    lc_ctype='C'
+    template='template0'
+  register: create_db_bluebutton_hapi
+
+- name: Create Database User
+  postgresql_user:
+    login_host="{{ rds_postgres_bluebutton_address }}"
+    login_user="{{ postgres_bluebutton_master_username }}"
+    login_password="{{ postgres_bluebutton_master_password }}"
+    db=bluebutton_hapi
+    name="{{ bluebutton_hapi_db_username }}"
+    password="{{ bluebutton_hapi_db_password}}"
+    priv=ALL
+  # Workaround for https://github.com/ansible/ansible-modules-core/issues/297
+  # Note: This issue makes it impossible to change PostgreSQL user's password/privileges via Ansible.
+  when: create_db_bluebutton_hapi.changed

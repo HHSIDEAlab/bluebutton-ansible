@@ -1,0 +1,9 @@
+---
+# This playbook manages the Blue Button systems' infrastructure.
+#
+# Usage:
+#  
+#     $ ansible-playbook --extra-vars "ec2_key_name=foo env={ test | production }"
+
+- include: site-provision.yml
+- include: site-configure.yml

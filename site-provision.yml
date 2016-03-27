@@ -1,0 +1,113 @@
+---
+# This playbook provisions the AWS resources for the Blue Button systems' 
+# infrastructure.
+#
+# Usage: This playbook should be included from `site.yml`.
+
+- hosts: localhost
+  name: AWS - Provision Resources and Instances
+  connection: local
+  gather_facts: false
+  
+  tasks:
+    
+    - name: Local - whoami
+      local_action: command whoami
+      register: whoami
+    
+    - name: EC2 - Provision Security Group 'ssh-all'
+      ec2_group:
+        name: ssh-all
+        description: Allows incoming traffic on port 22 (from all IPs).
+        region: "{{ region }}"
+        rules:
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+        rules_egress:
+          - proto: all
+            cidr_ip: 0.0.0.0/0
+    
+    - name: EC2 - Provision Security Group 'http-all'
+      ec2_group:
+        name: http-all
+        description: Allows incoming traffic on port 80 (from all IPs).
+        region: "{{ region }}"
+        rules:
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: 0.0.0.0/0
+        rules_egress:
+          - proto: all
+            cidr_ip: 0.0.0.0/0
+    
+    - name: RDS - Provision 'bluebutton'
+      rds:
+        command: create
+        region: "{{ region }}"
+        instance_name: "{{ postgres_bluebutton_instance_name }}"
+        db_engine: postgres
+        # Note: Each 10K sample beneficiaries in FHIR take roughly 7GB of DB space
+        size: 150
+        # This instance type has 8 vCPUs and 32GB RAM
+        instance_type: db.m4.2xlarge
+        publicly_accessible: false
+        username: "{{ postgres_bluebutton_master_username }}"
+        password: "{{ postgres_bluebutton_master_password }}"
+        tags:
+          # Note: See https://github.com/ansible/ansible/issues/14464
+          Application: "BlueButton"
+          Environment: "{{ env }}"
+          CreatedBy: whoami.stdout
+        wait: true
+        wait_timeout: 900
+
+    - name: EC2 - Provision 'bluebutton-hapi-master'
+      ec2:
+        key_name: "{{ ec2_key_name }}"
+        group:
+          - default
+          - ssh-all
+          - http-all
+
+        # This instance type has 8 vCPUs and 15GB RAM
+        instance_type: c4.2xlarge
+
+        image: "{{ ami_id_ubuntu }}"
+        volumes:
+          - device_name: /dev/sda1
+            volume_size: 100
+        region: "{{ region }}"
+        wait: true
+        exact_count: 1
+        count_tag:
+          Name: bluebutton-hapi-master
+          Application: "BlueButton"
+          Environment: "{{ env }}"
+        instance_tags:
+          Name: bluebutton-hapi-master
+          Application: "BlueButton"
+          Environment: "{{ env }}"
+          CreatedBy: "{{ whoami.stdout }}"
+    
+    # This task won't print anything out but can take a few minutes. That 
+    # may make the previous task look like it's taking awhile. Oh well.
+    # Note: Must set 'cache_max_age = 0' in ec2.ini for this to actually work.
+    # Note: It'd be great if this could be run as a handler, so it's only run
+    # when needed, but it can't (for some reason).
+    # TODO: File Ansible issue: calling this in any play wipes out all EC2 facts in inventory
+    - name: Inventory - Refresh
+      meta: refresh_inventory
+
+- hosts: tag_Application_BlueButton:&tag_Environment_{{ env }}
+  name: AWS - Wait for SSH
+  connection: local
+  gather_facts: true
+  
+  tasks:
+  
+    - name: EC2 - Wait for SSH
+      wait_for: host={{ inventory_hostname }} search_regex=OpenSSH port=22 state=started
+

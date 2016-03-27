@@ -1,0 +1,28 @@
+---
+#
+# Variables here are applicable to all host groups.
+#
+
+region: us-east-1
+
+# Ubuntu 14.04 (Trusty)
+ami_id_ubuntu: ami-d05e75b8
+
+# If `env` is not `production`, we prefix all DNS records with `-{{ env }}`,
+# in order to prevent dev/test DNS records from colliding with production ones.
+dns_record_suffix: "{{ '-%s' % env if env != 'production' else '' }}"
+
+# FIXME: Once https://github.com/ansible/ansible/issues/14464
+# is solved, remove the env from the name.
+postgres_bluebutton_instance_name: postgres-bluebutton-{{ env }}
+
+# (The actual values for these are stored in vault.yml.)
+postgres_bluebutton_master_username: "{{ vault_postgres_bluebutton_master_username }}"
+postgres_bluebutton_master_password: "{{ vault_postgres_bluebutton_master_password }}"
+
+bluebutton_hapi_master_dns: "bbhapi0{{ dns_record_suffix }}.hhsdevcloud.us"
+ldap_dns: "ldap{{ dns_record_suffix }}.hhsdevcloud.us"
+
+# (The actual values for these are stored in vault.yml.)
+bluebutton_hapi_db_username: "{{ vault_bluebutton_hapi_db_username }}"
+bluebutton_hapi_db_password: "{{ vault_bluebutton_hapi_db_password }}"

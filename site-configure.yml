@@ -1,0 +1,33 @@
+---
+# This playbook configures the AWS resources for the HHS Dev Cloud's 
+# development infrastructure.
+#
+# Usage: This playbook should be included from `site.yml`.
+
+- hosts: tag_Application_BlueButton:&tag_Environment_{{ env }}:&tag_Name_bluebutton_hapi_master
+  name: Configure 'bluebutton-hapi-master'
+  user: ubuntu
+  gather_facts: true
+  become: true
+  
+  vars:
+    bluebutton_hapi_master_address_public: "{{ hostvars | get_members(groups, 'tag_Name_bluebutton_hapi_master') | map(attribute='ec2_public_dns_name') | list | first }}"
+    rds_postgres_bluebutton_address: "{{ hostvars | get_members(groups, 'rds') | selectattr('ec2_id', 'equalto', postgres_bluebutton_instance_name) | map(attribute='ec2__address') | list | first }}"
+    rds_postgres_bluebutton_port: "{{ hostvars | get_members(groups, 'rds') | selectattr('ec2_id', 'equalto', postgres_bluebutton_instance_name) | map(attribute='ec2__port') | list | first }}"
+  
+  roles:
+    - hapi-server
+  
+  tasks:
+    - name: Route 53 - bluebutton-hapi-master
+      local_action: route53
+        command=create
+        overwrite=true
+        zone=hhsdevcloud.us
+        record="{{ bluebutton_hapi_master_dns }}"
+        type=CNAME
+        ttl=3600
+        value="{{ bluebutton_hapi_master_address_public }}"
+        # FIXME Not supported until Ansible release > 2.0.0.2
+        # wait=true
+      become: false
