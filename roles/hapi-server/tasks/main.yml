@@ -39,3 +39,15 @@
   # Workaround for https://github.com/ansible/ansible-modules-core/issues/297
   # Note: This issue makes it impossible to change PostgreSQL user's password/privileges via Ansible.
   when: create_db_bluebutton_hapi.changed
+
+- name: Create Directory '/opt/cms'
+  file: path=/opt/cms state=directory
+
+- name: Create Directory '/opt/cms/bluebutton'
+  file: path=/opt/cms/bluebutton state=directory
+
+- name: Install jetty-runner
+  get_url: 
+    url=http://search.maven.org/remotecontent?filepath=org/eclipse/jetty/jetty-runner/9.3.8.v20160314/jetty-runner-9.3.8.v20160314.jar
+    dest=/opt/cms/bluebutton/jetty-runner-9.3.8.v20160314.jar
+    checksum=sha1:baae99ba94d7c486839ad9649cfedb335eef4166
