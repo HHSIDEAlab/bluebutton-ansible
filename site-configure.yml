@@ -16,6 +16,7 @@
     rds_postgres_bluebutton_port: "{{ hostvars | get_members(groups, 'rds') | selectattr('ec2_id', 'equalto', postgres_bluebutton_instance_name) | map(attribute='ec2__port') | list | first }}"
   
   roles:
+    - common
     - hapi-server
   
   tasks:
