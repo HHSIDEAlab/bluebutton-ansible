@@ -1,0 +1,22 @@
+---
+
+- name: Install
+  apt: name={{ item }} update_cache=true cache_valid_time="{{ 60 * 15 }}"
+  with_items:
+    - nginx
+
+- name: Disable Site 'default'
+  file: path=/etc/nginx/sites-enabled/default state=absent
+  notify:
+    - Restart Service 'nginx'
+
+- name: Create Site 'hapi'
+  template: src=hapi.j2 dest=/etc/nginx/sites-available/hapi owner=root group=root mode="u=rw,g=r,o=r"
+  notify:
+    - Restart Service 'nginx'
+
+- name: Enable Site 'hapi'
+  file: src=/etc/nginx/sites-available/hapi dest=/etc/nginx/sites-enabled/hapi owner=root group=root state=link
+  notify:
+    - Restart Service 'nginx'
+

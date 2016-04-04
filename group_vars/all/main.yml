@@ -21,7 +21,7 @@ postgres_bluebutton_master_username: "{{ vault_postgres_bluebutton_master_userna
 postgres_bluebutton_master_password: "{{ vault_postgres_bluebutton_master_password }}"
 
 bluebutton_hapi_master_dns: "bbhapi0{{ dns_record_suffix }}.hhsdevcloud.us"
-ldap_dns: "ldap{{ dns_record_suffix }}.hhsdevcloud.us"
+bluebutton_hapi_dns: "bluebuttonhapi{{ dns_record_suffix }}.hhsdevcloud.us"
 
 # (The actual values for these are stored in vault.yml.)
 bluebutton_hapi_db_username: "{{ vault_bluebutton_hapi_db_username }}"

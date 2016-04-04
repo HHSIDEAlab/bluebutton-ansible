@@ -92,6 +92,28 @@
           Environment: "{{ env }}"
           CreatedBy: "{{ whoami.stdout }}"
     
+    - name: EC2 - Provision 'bluebutton-nginx'
+      ec2:
+        key_name: "{{ ec2_key_name }}"
+        group:
+          - default
+          - ssh-all
+          - http-all
+        instance_type: t2.micro
+        image: "{{ ami_id_ubuntu }}"
+        region: "{{ region }}"
+        wait: true
+        exact_count: 1
+        count_tag:
+          Name: bluebutton-nginx
+          Application: "BlueButton"
+          Environment: "{{ env }}"
+        instance_tags:
+          Name: bluebutton-nginx
+          Application: "BlueButton"
+          Environment: "{{ env }}"
+          CreatedBy: "{{ whoami.stdout }}"
+    
     # This task won't print anything out but can take a few minutes. That 
     # may make the previous task look like it's taking awhile. Oh well.
     # Note: Must set 'cache_max_age = 0' in ec2.ini for this to actually work.

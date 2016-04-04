@@ -20,7 +20,7 @@
     - hapi-server
   
   tasks:
-    - name: Route 53 - bluebutton-hapi-master
+    - name: "Route 53 - {{ bluebutton_hapi_master_dns }}"
       local_action: route53
         command=create
         overwrite=true
@@ -29,6 +29,33 @@
         type=CNAME
         ttl=3600
         value="{{ bluebutton_hapi_master_address_public }}"
+        # FIXME Not supported until Ansible release > 2.0.0.2
+        # wait=true
+      become: false
+
+- hosts: tag_Application_BlueButton:&tag_Environment_{{ env }}:&tag_Name_bluebutton_nginx
+  name: Configure 'bluebutton-nginx'
+  user: ubuntu
+  gather_facts: true
+  become: true
+  
+  vars:
+    bluebutton_hapi_master_address_private: "{{ hostvars | get_members(groups, 'tag_Name_bluebutton_hapi_master') | map(attribute='ec2_private_dns_name') | list | first }}"
+    bluebutton_nginx_address_public: "{{ hostvars | get_members(groups, 'tag_Name_bluebutton_nginx') | map(attribute='ec2_public_dns_name') | list | first }}"
+  
+  roles:
+    - bluebutton-nginx
+  
+  tasks:
+    - name: "Route 53 - {{ bluebutton_hapi_dns }}"
+      local_action: route53
+        command=create
+        overwrite=true
+        zone=hhsdevcloud.us
+        record="{{ bluebutton_hapi_dns }}"
+        type=CNAME
+        ttl=3600
+        value="{{ bluebutton_nginx_address_public }}"
         # FIXME Not supported until Ansible release > 2.0.0.2
         # wait=true
       become: false
